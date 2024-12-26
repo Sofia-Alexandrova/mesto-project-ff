@@ -180,17 +180,20 @@ Promise.all([getInitialCards(), getProfile()])
 enableValidation(validationConfig);
 
 buttonEditProfile.addEventListener("click", () => {
+    console.log('Клик на кнопку редактировать профиль');
     clearValidation(formElements.editProfile.form, validationConfig);
     formElements.editProfile.nameInput.value = profileTitle.textContent;
     formElements.editProfile.jobInput.value = profileDescription.textContent;
     openModal(modalEditProfile);
 });
 buttonAddCard.addEventListener("click", () => {
+    console.log('Клик на кнопку добавления карточки');
     clearValidation(formElements.addCard.form, validationConfig);
     formElements.addCard.form.reset();
     openModal(modalAddCard);
 });
 profileImage.addEventListener("click", () => {
+    console.log('Клик на редактирования аватара');
     clearValidation(formElements.editAvatar.form, validationConfig);
     formElements.editAvatar.form.reset();
     openModal(modalEditAvatar);
