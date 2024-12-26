@@ -149,6 +149,7 @@ function handleConfirmDeletion(evt) {
 
 function openImagePopup(src, alt) {
   imgContainerModalBigImage.src = src;
+  imgContainerModalBigImage.alt = `Фотография ${alt}`; 
   imgCaptionModalBigImage.textContent = alt;
   openModal(modalBigImage);
 }
