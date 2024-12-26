@@ -12,23 +12,31 @@ import {
   putLike,
   deleteLike,
 } from "./scripts/api.js";
+import { buttonTexts, validationConfig } from "./utils/constants.js";
+import { renderLoading, handleSubmit } from "./utils/utils.js";
 
 let cardIDForDeletion;
 let eventForDeletion;
 let ownerID;
 
-const textDefaultSave = "Сохранить";
-const textDefaultDelete = "Да";
-const textSaving = "Сохранение...";
-const textDeletion = "Удаление...";
-
-const validationConfig = {
-  formSelector: ".popup__form",
-  inputSelector: ".popup__input",
-  submitButtonSelector: ".popup__button",
-  inactiveButtonClass: "popup__button_inactive",
-  inputErrorClass: "popup__input_type_error",
-  errorClass: "popup__input-error_active",
+const formElements = {
+  editAvatar: {
+    form: document.forms.edit_avatar,
+    avatarInput: document.forms.edit_avatar.elements.avatar,
+  },
+  editProfile: {
+    form: document.forms.edit_profile,
+    nameInput: document.forms.edit_profile.elements.name,
+    jobInput: document.forms.edit_profile.elements.description,
+  },
+  addCard: {
+    form: document.forms.new_place,
+    placeNameInput: document.forms.new_place.elements.place_name,
+    linkInput: document.forms.new_place.elements.link,
+  },
+  confirmDeletion: {
+    form: document.forms.confirm_deletion,
+  },
 };
 
 const container = document.querySelector(".content");
@@ -53,18 +61,8 @@ const modalConfirmDeletion = document.querySelector(
   ".popup_type_confirm-deletion"
 );
 
-const formConfirmDeletion = document.forms.confirm_deletion;
-const formEditAvatar = document.forms.edit_avatar;
-const avatarInput = formEditAvatar.elements.avatar;
-const formEditProfile = document.forms.edit_profile;
-const nameInput = formEditProfile.elements.name;
-const jobInput = formEditProfile.elements.description;
-const formAddCard = document.forms.new_place;
-const placeNameInput = formAddCard.elements.place_name;
-const linkInput = formAddCard.elements.link;
-
 const deleteCardCallback = (event, cardID) => {
-  openModal(document.querySelector(".popup_type_confirm-deletion"));
+  openModal(modalConfirmDeletion);
   cardIDForDeletion = cardID;
   eventForDeletion = event;
 };
@@ -83,26 +81,27 @@ const likeToggleCallback = (buttonLikeClicked, cardID, cardLikesNumber) => {
     .catch((err) => console.log(`Произошла ошибка: ${err}`));
 };
 
-function handleEditProfile(event) {
-  event.preventDefault();
-  renderLoading(true, formEditProfile, textSaving, textDefaultSave);
-  patchProfile({ name: nameInput.value, about: jobInput.value })
-    .then((res) => {
+function handleEditProfile(evt) {
+  function makeRequest() {
+    return patchProfile({
+      name: formElements.editProfile.nameInput.value,
+      about: formElements.editProfile.jobInput.value,
+    }).then((res) => {
       profileTitle.textContent = res.name;
       profileDescription.textContent = res.about;
-    })
-    .catch((err) => console.log(`Произошла ошибка: ${err}`))
-    .finally(() => {
+      formElements.editProfile.form.reset();
       closeModal(modalEditProfile);
-      renderLoading(false, formEditProfile, textSaving, textDefaultSave);
     });
+  }
+  handleSubmit(makeRequest, evt, buttonTexts.saving);
 }
 
-function handleAddCard(event) {
-  event.preventDefault();
-  renderLoading(true, formAddCard, textSaving, textDefaultSave);
-  postCard({ name: placeNameInput.value, link: linkInput.value })
-    .then((res) => {
+function handleAddCard(evt) {
+  function makeRequest() {
+    return postCard({
+      name: formElements.addCard.placeNameInput.value,
+      link: formElements.addCard.linkInput.value,
+    }).then((res) => {
       placesContainer.prepend(
         createCard(
           res,
@@ -112,48 +111,40 @@ function handleAddCard(event) {
           ownerID
         )
       );
-    })
-    .catch((err) => console.log(`Произошла ошибка: ${err}`))
-    .finally(() => {
+      formElements.addCard.form.reset();
       closeModal(modalAddCard);
-      renderLoading(false, formAddCard, textSaving, textDefaultSave);
-      formAddCard.reset();
     });
+  }
+  handleSubmit(makeRequest, evt, buttonTexts.saving);
+}
+function setAvatar(avatar) {
+  profileImage.style.backgroundImage = `url(${avatar})`;
 }
 
-function handleEditAvatar(event) {
-  event.preventDefault();
-  renderLoading(true, formEditAvatar, textSaving, textDefaultSave);
-  patchAvatar({ avatar: avatarInput.value })
-    .then((res) => {
-      profileImage.style.backgroundImage = `url("${res.avatar}")`;
-    })
-    .catch((err) => console.log(`Произошла ошибка: ${err}`))
-    .finally(() => {
+function handleEditAvatar(evt) {
+  function makeRequest() {
+    return patchAvatar({
+      avatar: formElements.editAvatar.avatarInput.value,
+    }).then((res) => {
+      setAvatar(res.avatar);
+      formElements.editAvatar.form.reset();
       closeModal(modalEditAvatar);
-      renderLoading(false, formEditAvatar, textSaving, textDefaultSave);
-      formEditAvatar.reset();
     });
+  }
+
+  handleSubmit(makeRequest, evt, buttonTexts.saving);
 }
 
-function handleConfirmDeletion(event) {
-  event.preventDefault();
-  renderLoading(true, formConfirmDeletion, textDeletion, textDefaultDelete);
-  deleteFromServerCard(cardIDForDeletion)
-    .then((res) => {
+function handleConfirmDeletion(evt) {
+  function makeRequest() {
+    return deleteFromServerCard(cardIDForDeletion).then((res) => {
       deleteCard(eventForDeletion);
       console.log(res);
-    })
-    .catch((err) => console.log(`Произошла ошибка: ${err}`))
-    .finally(() => {
       closeModal(modalConfirmDeletion);
-      renderLoading(
-        false,
-        formConfirmDeletion,
-        textDeletion,
-        textDefaultDelete
-      );
     });
+  }
+
+  handleSubmit(makeRequest, evt, buttonTexts.deletion);
 }
 
 function openImagePopup(src, alt) {
@@ -162,17 +153,11 @@ function openImagePopup(src, alt) {
   openModal(modalBigImage);
 }
 
-function renderLoading(isLoading, form, textLoading, textDefault) {
-  form.querySelector(".popup__button").textContent = isLoading
-    ? textLoading
-    : textDefault;
-}
-
 Promise.all([getInitialCards(), getProfile()]).then(
   ([cardsData, profileData]) => {
     profileTitle.textContent = profileData.name;
     profileDescription.textContent = profileData.about;
-    profileImage.style.backgroundImage = `url("${profileData.avatar}")`;
+    setAvatar(profileData.avatar);
     ownerID = profileData._id;
     cardsData.forEach(function (elem) {
       placesContainer.append(
@@ -191,26 +176,29 @@ Promise.all([getInitialCards(), getProfile()]).then(
 enableValidation(validationConfig);
 
 buttonEditProfile.addEventListener("click", () => {
-  clearValidation(formEditProfile, validationConfig);
-  nameInput.value = profileTitle.textContent;
-  jobInput.value = profileDescription.textContent;
+  clearValidation(formElements.editProfile.form, validationConfig);
+  formElements.editProfile.nameInput.value = profileTitle.textContent;
+  formElements.editProfile.jobInput.value = profileDescription.textContent;
   openModal(modalEditProfile);
 });
 buttonAddCard.addEventListener("click", () => {
-  clearValidation(formAddCard, validationConfig);
-  formAddCard.reset();
+  clearValidation(formElements.addCard.form, validationConfig);
+  formElements.addCard.form.reset();
   openModal(modalAddCard);
 });
 profileImage.addEventListener("click", () => {
-  clearValidation(formEditAvatar, validationConfig);
-  formEditAvatar.reset();
+  clearValidation(formElements.editAvatar.form, validationConfig);
+  formElements.editAvatar.form.reset();
   openModal(modalEditAvatar);
 });
 
-formAddCard.addEventListener("submit", handleAddCard);
-formEditProfile.addEventListener("submit", handleEditProfile);
-formEditAvatar.addEventListener("submit", handleEditAvatar);
-formConfirmDeletion.addEventListener("submit", handleConfirmDeletion);
+formElements.addCard.form.addEventListener("submit", handleAddCard);
+formElements.editProfile.form.addEventListener("submit", handleEditProfile);
+formElements.editAvatar.form.addEventListener("submit", handleEditAvatar);
+formElements.confirmDeletion.form.addEventListener(
+  "submit",
+  handleConfirmDeletion
+);
 
 [
   modalBigImage,
